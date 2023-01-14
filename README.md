@@ -16,7 +16,7 @@ I am not responsible for what other's may do with your console data on Nintendo'
 
 ## Usage
 
-Currently there's no setup.py for this. You may run it by having the terminal's current directory in the cloned repository folder. You may run `python3 -m pip -r requirements.txt` to install requirements, but read `Notes` first.
+Currently there's no setup.py for this. You may run it by having the terminal's current directory in the cloned repository folder. You may run `python3 -m pip install -r requirements.txt` to install requirements, but read `Notes` first.
 
 `python3 -m cleaninty ctr -h` for details.
 
