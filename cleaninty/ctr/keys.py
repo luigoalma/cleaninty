@@ -240,9 +240,11 @@ def _gen_console_keys(otp_blob: typing.SupportsBytes, dev: bool) -> typing.Optio
 	hashing_blob = bytes(otp_blob)[:0x1C] + keyblob[:36]
 	blob_hash = hashlib.sha256(hashing_blob).digest()
 
-	key = scramble_keys(be(blob_hash[0:16]), be(blob_hash[16:32])).to_bytes(16, 'big')
+	key = scramble_keys(be(blob_hash[0:16]), be(blob_hash[16:32]))
 	if key is None:
 		return None
+
+	key = key.to_bytes(16, 'big')
 
 	genblobs = (
 		unpack('36x16s64s', keyblob[0:116]),

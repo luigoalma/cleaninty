@@ -95,10 +95,12 @@ class MovableSed:
 		key = keys.scramble_keys(
 			otp.console_keys_x[0xB],
 			keys.get_b9_y(0xB, dev if dev is not None else otp.is_dev)
-		).to_bytes(16, 'big')
+		)
 
 		if key is None:
 			return False
+
+		key = key.to_bytes(16, 'big')
 
 		format_rng_increment = 0
 		if self._lfcs.lfcs_id == otp.lfcs_id:
@@ -140,10 +142,12 @@ class MovableSed:
 		key = keys.scramble_keys(
 			otp.console_keys_x[0xB],
 			keys.get_b9_y(0xB, dev if dev is not None else otp.is_dev)
-		).to_bytes(16, 'big')
+		)
 
 		if key is None:
 			return False
+
+		key = key.to_bytes(16, 'big')
 
 		c = cmac.CMAC(crypto_ciphers.algorithms.AES(key), default_backend())
 		c.update(hashlib.sha256(self._msed_data[:0x130]).digest())
@@ -176,15 +180,18 @@ class MovableSed:
 		key = keys.scramble_keys(
 			keyx_0x35,
 			keyy
-		).to_bytes(16, 'big')
+		)
 
 		cmackey = keys.scramble_keys(
 			keyx_0x35,
 			cmackeyy
-		).to_bytes(16, 'big')
+		)
 
 		if key is None or cmackeyy is None:
 			return None
+
+		key = key.to_bytes(16, 'big')
+		cmackeyy = cmackeyy.to_bytes(16, 'big')
 
 		decryptor = crypto_ciphers.Cipher(
 			crypto_ciphers.algorithms.AES(key),
@@ -218,15 +225,18 @@ class MovableSed:
 		key = keys.scramble_keys(
 			keyx_0x35,
 			keyy
-		).to_bytes(16, 'big')
+		)
 
 		cmackey = keys.scramble_keys(
 			keyx_0x35,
 			cmackeyy
-		).to_bytes(16, 'big')
+		)
 
 		if key is None or cmackeyy is None:
 			return None
+
+		key = key.to_bytes(16, 'big')
+		cmackeyy = cmackeyy.to_bytes(16, 'big')
 
 		c = cmac.CMAC(crypto_ciphers.algorithms.AES(cmackey), default_backend())
 		c.update(hashlib.sha256(self._msed_data[:0x110]).digest())
