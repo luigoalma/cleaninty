@@ -588,6 +588,9 @@ def _configure_cli_cert_and_key(enc_cert: bytes, enc_key: bytes):
 		except Exception:
 			pass
 
+	if cert is None or key is None:
+		return
+
 	cn = [i.rfc4514_string() for i in cert.subject.rdns if i.rfc4514_string().startswith('CN=')]
 	if len(cn) != 1:
 		return
