@@ -428,6 +428,8 @@ def _eshop_region_change(parser, parsed_args):
 			print("Any existing eshop account was deleted in the process.")
 			print("This console has titles attached to it on a different region.")
 			print("System transfer to another console is needed to remove them.")
+			print("System transfer without NNID transfer is enough.")
+			print("NNID-only transfers do not work to fix.")
 			return
 		raise
 
@@ -1023,5 +1025,8 @@ def _main(args = None):
 
 	if args.boot9:
 		keys.register_additional_b9_paths(args.boot9)
+
+	if not keys._load_b9_keys():
+		print("There was a problem loading boot9 keys, some operations may fail.")
 
 	args.func(parser, args)
