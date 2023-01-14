@@ -1,0 +1,73 @@
+set OUTDIR "0:/system_elements"
+
+if find 1:/title/00040138/00000002/content/????????.app NATIVE_NCCH
+	goto FoundFirm
+end
+
+if not find 1:/title/00040138/20000002/content/????????.app NATIVE_NCCH
+	echo "No firmware?"
+	goto Exit
+end
+
+@FoundFirm
+
+if not find 1:/title/00040130/00002f02/content/????????.app SSL
+	echo "No SSL module?"
+	goto Exit
+end
+
+if not find 1:/title/00040130/00001702/content/????????.app CFG
+	echo "No CFG module?"
+	goto Exit
+end
+
+if not find 1:/title/00040130/00003802/content/????????.app ACT
+	echo "No ACT module?"
+	goto Exit
+end
+
+if not find 1:/title/0004001b/00010002/content/????????.app CLCERTA
+	echo "No ClCertA?"
+	goto Exit
+end
+
+#if not find 1:/dbs/certs.db CERTSDB
+#	echo "No certs.db?"
+#	goto Exit
+#end
+
+verify $[NATIVE_NCCH]
+verify $[SSL]
+verify $[CFG]
+verify $[ACT]
+verify $[CLCERTA]
+
+mkdir $[OUTDIR]
+
+imgmount $[NATIVE_NCCH]
+verify G:/exefs/.firm
+set NATIVE_FIRM 9:/NATIVE_FIRM.firm
+cp -w G:/exefs/.firm $[NATIVE_FIRM]
+imgumount
+
+imgmount $[NATIVE_FIRM]
+verify G:/0004013000003000.Process9.app
+extrcode G:/0004013000003000.Process9.app $[OUTDIR]/p9code.bin
+imgumount
+
+extrcode $[SSL] $[OUTDIR]/sslcode.bin
+
+extrcode $[CFG] $[OUTDIR]/cfgcode.bin
+
+extrcode $[ACT] $[OUTDIR]/actcode.bin
+
+imgmount $[CLCERTA]
+cp -w G:/romfs/ctr-common-1-cert.bin $[OUTDIR]/ctr-common-1-cert.bin
+cp -w G:/romfs/ctr-common-1-key.bin $[OUTDIR]/ctr-common-1-key.bin
+imgumount
+
+#imgmount $[CERTSDB]
+#cp -w D:/partitionA.bin $[OUTDIR]/certsdbpartition.bin
+#imgumount
+
+@Exit

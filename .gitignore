@@ -1,0 +1,15 @@
+*
+*/
+
+!.github
+!.github/**
+!.gitignore
+!cleaninty
+!cleaninty/**
+!gm9scripts
+!gm9scripts/**
+!requirements.txt
+!README.md
+!LICENSE.md
+
+**/__pycache__
