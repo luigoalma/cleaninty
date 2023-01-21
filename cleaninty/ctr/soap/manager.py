@@ -183,10 +183,10 @@ class CtrSoapManager:
 	def clear_all_overrides(self) -> None:
 		self._overrides.clear()
 
-	def get_overrides_copy(self) -> dict[str, typing.Optional[str]]:
+	def get_overrides_copy(self) -> typing.Dict[str, typing.Optional[str]]:
 		return self._overrides.copy()
 
-	def load_overrides_copy(self, overrides: dict[str, typing.Optional[str]]) -> None:
+	def load_overrides_copy(self, overrides: typing.Dict[str, typing.Optional[str]]) -> None:
 		o = self.get_overrides_copy()
 		try:
 			region = overrides.get('region', None)

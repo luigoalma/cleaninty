@@ -13,6 +13,7 @@ from . import regionaldata
 from .exception import ClassInitError, DataProcessingError, CTRExceptionBase
 from .ssl import _ssl_certs
 from .constants import _load_act_secrets, _act_cli_data
+from ._py_ver_fixes import CTRModel_T
 
 __all__ = [
 	"ActSimpleObj",
@@ -157,7 +158,7 @@ class ActSimpleObj:
 		self._nver = ntitles[i]
 		self._title = title
 
-	def _model_select(self) -> typing.Literal['CTR', 'SPR', 'FTR', 'KTR', 'RED', 'JAN']:
+	def _model_select(self) -> CTRModel_T:
 		model = self._device.model_override
 		if model is not None:
 			return model

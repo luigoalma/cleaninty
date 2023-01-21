@@ -14,6 +14,7 @@ from .title import Title, MediaType
 from ._sys_titles import o3ds_sys_titles, n3ds_sys_titles
 from .exception import ClassInitError, DataProcessingError
 from . import regionaldata
+from ._py_ver_fixes import CTRModel_T
 
 __all__ = [
 	"SimpleCtrDevice"
@@ -180,7 +181,7 @@ class SimpleCtrDevice:
 		msed_data: typing.Union[MovableSed, typing.SupportsBytes, None] = None, # generated unsigned from OTP if msed not given
 		msed_fp: typing.Optional[typing.BinaryIO] = None, # generated unsigned from OTP if msed not given
 		msed_file: typing.Optional[str] = None, # generated unsigned from OTP if msed not given
-		model_override: typing.Optional[typing.Literal['CTR', 'SPR', 'FTR', 'KTR', 'RED', 'JAN']] = None, # model to override serial number based detection
+		model_override: typing.Optional[CTRModel_T] = None, # model to override serial number based detection
 		region: typing.Optional[regionaldata.RegionType] = None, # optional if secureinfo is given instead of just serial
 		country: typing.Optional[regionaldata.CountryType] = None, # optional if region has only one country
 		language: typing.Optional[regionaldata.LanguageType] = None, # default language if not given
@@ -465,7 +466,7 @@ class SimpleCtrDevice:
 		return self._secinfo.serial
 
 	@property
-	def model_override(self) -> typing.Optional[typing.Literal['CTR', 'SPR', 'FTR', 'KTR', 'RED', 'JAN']]:
+	def model_override(self) -> typing.Optional[CTRModel_T]:
 		return self._model_override
 
 	@property

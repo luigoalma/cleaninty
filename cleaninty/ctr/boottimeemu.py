@@ -1,17 +1,13 @@
-import time, random, math, typing, sys
+import time, random, math, typing
+
+from ._py_ver_fixes import monotonic_ns
 
 __all__ = [
 	"BootTimeEmu"
 ]
 
-if sys.hexversion < 0x03070000:
-	def monotonic_µs() -> int:
-		t = time.monotonic()
-		t_F = math.floor(t)
-		return t_F * 1000000 + int((t - t_F) * 1000000)
-else:
-	def monotonic_µs() -> int:
-		return time.monotonic_ns() // 1000
+def monotonic_µs() -> int:
+	return monotonic_ns() // 1000
 
 class BootTimeEmu:
 	def __init__(self):

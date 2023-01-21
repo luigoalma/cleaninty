@@ -8,6 +8,7 @@ from .exception import OperationError, CTRExceptionBase
 from ..certificate import Certificate
 from ..ticket import Ticket
 from ._common_parsers import _parse_attribute_member
+from .._py_ver_fixes import LimitKind_T
 
 #TODO:
 # - GetTaxes
@@ -520,11 +521,7 @@ class DownloadExpressETicket(soapenvelopebase.SoapEnvelopeBase):
 			typing.Iterable[
 				typing.Tuple[
 					int, # limits
-					typing.Union[ # limit kind
-						# don't know at this point, idk what they were thinking
-						typing.Literal['PR', 'TR', 'DR', 'SR', 'LR', 'ET'],
-						str # max 4 chars
-					]
+					LimitKind_T # limit kind
 				]
 			]
 		] = None,
