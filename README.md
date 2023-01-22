@@ -14,21 +14,27 @@ I cannot stress this enough, ***DO NOT SHARE ANY GENERATED JSON OR OTP*** for an
 
 I am not responsible for what other's may do with your console data on Nintendo's servers.
 
+## Installing
+
+Read `Notes` first.
+
+You may run `python3 setup.py install` to install to system or add `--user` to install to user.
+
+You may also install it from PyPI with `pip install cleaninty`.
+
 ## Usage
 
-Currently there's no setup.py for this. You may run it by having the terminal's current directory in the cloned repository folder. You may run `python3 -m pip install -r requirements.txt` to install requirements, but read `Notes` first.
+`cleaninty ctr -h` for details.
 
-`python3 -m cleaninty ctr -h` for details.
-
-I recommend you to run the GM9 script `ExtractSystemElements.gm9` to extract necessary system elements for keys and certificates on your console. Use extracted files with `SetupConstants`, check `python3 -m cleaninty ctr SetupConstants -h` for help.
+For the first run, I recommend you to use the [GM9 script `ExtractSystemElements.gm9`](https://raw.githubusercontent.com/luigoalma/cleaninty/master/gm9scripts/ExtractSystemElements.gm9) to extract necessary system elements for keys and certificates on your console, these elements are non-unique. Use extracted files with `SetupConstants`, check `cleaninty ctr SetupConstants -h` for help. You'll still need the AES HW Constant C in hexadecimal string as part of this command's arguments, which you'll have to find out yourself.
 
 ## Notes
 
-Tested in python 3.10 in Linux. You may have trouble installing `pycurl` on windows, need to have libcurl binaries and MSVC to install it.
+Tested in python 3.7 to 3.11 in Linux. You may have trouble installing `pycurl` on windows, need to have libcurl binaries and MSVC to install it.
 
 ## TODO
 
-- [ ] Proper setup.py
+- [x] Proper setup.py
 - [ ] More proper logging
 - [ ] More SOAPs
 - [ ] NUS connect simulation

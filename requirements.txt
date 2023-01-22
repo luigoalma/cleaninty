@@ -1,3 +1,0 @@
-pycurl>=7.45.0 # may work with a bit lower
-cryptography>=38.0.0 # may work with lower
-defusedxml

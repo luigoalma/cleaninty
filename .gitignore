@@ -4,12 +4,14 @@
 !.github
 !.github/**
 !.gitignore
-!cleaninty
-!cleaninty/**
+!src
+!src/**
 !gm9scripts
 !gm9scripts/**
 !requirements.txt
 !README.md
 !LICENSE.md
+!setup.py
+!setup.cfg
 
 **/__pycache__

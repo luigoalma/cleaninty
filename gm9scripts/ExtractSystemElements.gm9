@@ -70,4 +70,12 @@ imgumount
 #cp -w D:/partitionA.bin $[OUTDIR]/certsdbpartition.bin
 #imgumount
 
+if not sha M:/boot9.bin 2F88744FEED717856386400A44BBA4B9CA62E76A32C715D4F309C399BF28166F
+	#In case we are running in an odd environment
+	echo "Boot9 sha did not match, hence will not be dumped."
+	goto Exit
+end
+
+cp -w M:/boot9.bin $[OUTDIR]/boot9.bin
+
 @Exit

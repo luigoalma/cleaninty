@@ -1,3 +1,7 @@
+__version__ = '0.1.0'
+__author__ = 'Luis Marques'
+__license__ = 'Unlicense'
+
 from . import exception
 
 from cryptography.hazmat.backends import default_backend
