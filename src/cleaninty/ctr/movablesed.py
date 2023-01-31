@@ -187,11 +187,11 @@ class MovableSed:
 			cmackeyy
 		)
 
-		if key is None or cmackeyy is None:
+		if key is None or cmackey is None:
 			return None
 
 		key = key.to_bytes(16, 'big')
-		cmackeyy = cmackeyy.to_bytes(16, 'big')
+		cmackey = cmackey.to_bytes(16, 'big')
 
 		decryptor = crypto_ciphers.Cipher(
 			crypto_ciphers.algorithms.AES(key),
@@ -232,11 +232,11 @@ class MovableSed:
 			cmackeyy
 		)
 
-		if key is None or cmackeyy is None:
+		if key is None or cmackey is None:
 			return None
 
 		key = key.to_bytes(16, 'big')
-		cmackeyy = cmackeyy.to_bytes(16, 'big')
+		cmackey = cmackey.to_bytes(16, 'big')
 
 		c = cmac.CMAC(crypto_ciphers.algorithms.AES(cmackey), default_backend())
 		c.update(hashlib.sha256(self._msed_data[:0x110]).digest())
