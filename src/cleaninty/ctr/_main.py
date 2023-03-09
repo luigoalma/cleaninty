@@ -18,6 +18,7 @@ def _print_unhandled_exceptions(func):
 			return func(*args, **kwds)
 		except Exception as e:
 			print(f'An exception occurred:\n - {type(e).__name__}:\n  - {e}')
+			raise # in the future, use this for logging properly, for now
 	return inner
 
 def _print_soapcode_exceptions(func):

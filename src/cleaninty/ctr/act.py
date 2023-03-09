@@ -105,13 +105,13 @@ class ActResponseBase(XmlParseHelper):
 		except Exception as e:
 			raise XMLParseError("Unexpected exception while parsing XML") from e
 
-		@property
-		def errors(self) -> typing.Iterable[ActErrorElement]:
-			return self._errors
+	@property
+	def errors(self) -> typing.Iterable[ActErrorElement]:
+		return self._errors
 
-		@property
-		def had_errors(self) -> bool:
-			return self._had_errors
+	@property
+	def had_errors(self) -> bool:
+		return self._had_errors
 
 class ActEmptyResponse(ActResponseBase):
 	def __init__(self, xml_string: typing.Union[str, bytes]):
