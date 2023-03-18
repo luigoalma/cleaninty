@@ -1,4 +1,4 @@
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 __author__ = 'Luis Marques'
 __license__ = 'Unlicense'
 

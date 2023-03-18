@@ -686,8 +686,12 @@ def _download_title_tikid(parser, parsed_args):
 
 		print(f"Downloading to {out_name}")
 		try:
-			helper = CiaCDNBuilder(str(out_path))
-			if not cdn.download(helper, right_check=not parsed_args.ignore_rights):
+			helper = CiaCDNBuilder(str(out_path), parsed_args.keep_going)
+			if not cdn.download(
+				helper,
+				right_check=not parsed_args.ignore_rights,
+				content_error_continue=parsed_args.keep_going
+			):
 				print("Failed to download to " + out_name)
 				print("This may happen with connection errors, missing content or other unexpected reasons")
 		except Exception as e:
@@ -985,7 +989,6 @@ def _main(args = None):
 	etikdown_parser.set_defaults(func=_download_etickets)
 
 	# TODO:
-	#  - give user power to ignore 404s
 	#  - allow downloading contents to folder
 	#  - ability to generalize tickets to not be console specific
 	etitledown_parser = subparsers.add_parser('ETikTitleDownload', help='Download title of owned ETickets, currently only installable on target console with FBI or similar tool, not Godmode9 or custom-installer.')
@@ -1004,6 +1007,12 @@ def _main(args = None):
 	etitledown_parser.add_argument(
 		'--ignore-rights', '-i',
 		help='Ignore digital right checks',
+		action='store_true',
+		default=False
+	)
+	etitledown_parser.add_argument(
+		'--keep-going', '-k',
+		help='For DLC, keep downloading rest of optional content if another optional is missing',
 		action='store_true',
 		default=False
 	)

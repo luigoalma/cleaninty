@@ -2,7 +2,7 @@ from struct import pack
 import typing, os, pathlib
 
 from .cdn import CDN, CDNDownloadStage, AssistedCDNDownload
-from .tmd import ContentChunkRecord
+from .tmd import ContentChunkRecord, ContentTypeFlags
 from .exception import CTRExceptionBase, ClassInitError, DataProcessingError
 from ..connection import WriterFuncType, MultiWriter
 
@@ -24,7 +24,7 @@ def _exception_try_shield(inform_except: str, except_ret: typing.Any = None):
 	return inner
 
 class CiaCDNBuilder:
-	def __init__(self, output: str):
+	def __init__(self, output: str, rollback_optional_failed_content: bool = False):
 		self._path = pathlib.Path(output).resolve()
 		self._outfile = self._path.open("wb")
 		self._errorstate = False
@@ -38,6 +38,8 @@ class CiaCDNBuilder:
 
 		self._curr_content_off = -1
 		self._limit_write = -1
+		self._curr_optional = False
+		self._rollback_opt_content = bool(rollback_optional_failed_content)
 
 		self._index_field = 0
 
@@ -57,6 +59,24 @@ class CiaCDNBuilder:
 	def _error(self) -> None:
 		if self._errorstate:
 			return
+
+		if self._rollback_opt_content and \
+			self._last_stage == CDNDownloadStage.CONTENT and \
+			self._curr_content_off != -1 and \
+			self._curr_optional:
+			try:
+				self._rollback_opt_content = False # safe guard against failed rollbacks
+				self._ensure_seek(self._curr_content_off)
+				size = self._outfile.truncate()
+				if size != self._curr_content_off:
+					raise Exception("") # escape
+				self._curr_content_off = -1
+				self._limit_write = -1
+				self._curr_optional = False
+				self._rollback_opt_content = True
+				return
+			except Exception:
+				pass
 
 		self._errorstate = True
 		try:
@@ -189,6 +209,8 @@ class CiaCDNBuilder:
 
 		self._curr_content_off = self._outfile.tell()
 
+		self._curr_optional = bool(chunk.type & ContentTypeFlags.Optional)
+
 		return self._controlled_write
 
 	@_exception_try_shield('_error')
@@ -210,6 +232,7 @@ class CiaCDNBuilder:
 
 		self._curr_content_off = -1
 		self._limit_write = -1
+		self._curr_optional = False
 
 		self._block_align_up()
 
@@ -225,8 +248,16 @@ class CiaCDNBuilder:
 		if self._end_flag or self._errorstate:
 			return None
 
-		if (http_ret != 200 and http_ret != 0) or \
-			self._last_stage > stage:
+		if self._last_stage > stage:
+			self._error()
+			return None
+
+		if self._rollback_opt_content and \
+			http_ret == 404 and \
+			stage == CDNDownloadStage.CONTENT:
+			return None
+
+		if http_ret != 200 and http_ret != 0:
 			self._error()
 			return None
 
