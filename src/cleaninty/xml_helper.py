@@ -50,25 +50,71 @@ class XmlParseHelper:
 		text = parent._xml_get_str_element(parent, element)
 		return base64.b64decode(text + '===')
 
+	# to not call directly
 	@staticmethod
-	def _xml_get_int_element(
+	def _internal__xml_get_int_element_impl(
 		parent: 'XmlParseHelper',
-		element: XML_Element
+		element: XML_Element,
+		base: int = 10,
+		allowed_min: typing.Optional[int] = None,
+		allowed_max: typing.Optional[int] = None
 	) -> int:
 		parent._xml_raise_if_any_subelement(element)
-		if element.text is None:
-			return 0
-		return int(element.text)
+		var = int(element.text, base) if element.text is not None else 0
+
+		if allowed_min is not None and allowed_max is not None:
+			allowed_min, allowed_max = min(allowed_min, allowed_max), max(allowed_min, allowed_max)
+
+		if (allowed_min is not None and var < allowed_min) or \
+			(allowed_max is not None and var > allowed_max):
+			raise XMLParseError("Desired int boundary was surpassed")
+
+		return var
 
 	@staticmethod
-	def _xml_get_int_base16_element(
-		parent: 'XmlParseHelper',
-		element: XML_Element
-	) -> int:
-		parent._xml_raise_if_any_subelement(element)
-		if element.text is None:
-			return 0
-		return int(element.text, 16)
+	def _get_xml_int_parser(
+		base: int,
+		allowed_min: typing.Optional[int] = None,
+		allowed_max: typing.Optional[int] = None
+	) -> typing.Callable[
+		[
+			'XmlParseHelper',
+			XML_Element
+		],
+		int
+	]:
+		@staticmethod
+		def inner(
+			parent: 'XmlParseHelper',
+			element: XML_Element
+		) -> int:
+			return XmlParseHelper._internal__xml_get_int_element_impl(
+				parent, element, base, allowed_min, allowed_max
+			)
+		return inner
+
+	_xml_get_int_element = _get_xml_int_parser(10)
+	_xml_get_int_base16_element = _get_xml_int_parser(16)
+
+	_xml_get_s8_element = _get_xml_int_parser(10, -1<<7, (1<<7)-1)
+	_xml_get_u8_element = _get_xml_int_parser(10, 0, (1<<8)-1)
+	_xml_get_s8_base16_element = _get_xml_int_parser(16, -1<<7, (1<<7)-1)
+	_xml_get_u8_base16_element = _get_xml_int_parser(16, 0, (1<<8)-1)
+
+	_xml_get_s16_element = _get_xml_int_parser(10, -1<<15, (1<<15)-1)
+	_xml_get_u16_element = _get_xml_int_parser(10, 0, (1<<16)-1)
+	_xml_get_s16_base16_element = _get_xml_int_parser(16, -1<<15, (1<<15)-1)
+	_xml_get_u16_base16_element = _get_xml_int_parser(16, 0, (1<<16)-1)
+
+	_xml_get_s32_element = _get_xml_int_parser(10, -1<<31, (1<<31)-1)
+	_xml_get_u32_element = _get_xml_int_parser(10, 0, (1<<32)-1)
+	_xml_get_s32_base16_element = _get_xml_int_parser(16, -1<<31, (1<<31)-1)
+	_xml_get_u32_base16_element = _get_xml_int_parser(16, 0, (1<<32)-1)
+
+	_xml_get_s64_element = _get_xml_int_parser(10, -1<<63, (1<<63)-1)
+	_xml_get_u64_element = _get_xml_int_parser(10, 0, (1<<64)-1)
+	_xml_get_s64_base16_element = _get_xml_int_parser(16, -1<<63, (1<<63)-1)
+	_xml_get_u64_base16_element = _get_xml_int_parser(16, 0, (1<<64)-1)
 
 	def _xml_element_parse(
 		self,

@@ -11,6 +11,7 @@ else:
 if sys.hexversion < 0x03080000:
 	CTRModel_T = str
 	LimitKind_T = str
+	LicenseKind_T = str
 else:
 	CTRModel_T = typing.Literal['CTR', 'SPR', 'FTR', 'KTR', 'RED', 'JAN']
 	LimitKind_T = typing.Union[ # limit kind
@@ -18,3 +19,4 @@ else:
 		typing.Literal['PR', 'TR', 'DR', 'SR', 'LR', 'ET'],
 		str # max 4 chars
 	]
+	LicenseKind_T = typing.Literal['PERMANENT', 'DEMO', 'TRIAL', 'RENTAL', 'SUBSCRIPT', 'SERVICE']

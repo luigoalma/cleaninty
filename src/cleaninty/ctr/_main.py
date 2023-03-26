@@ -197,10 +197,10 @@ def _move_check_account(parser, parsed_args):
 	moved_last_time = None
 
 	for i in acct_attributes.accountattributes:
-		if   i[0] == 'MoveAccountTimes':
-			moved_times = int(i[1]) if i[1] else 0
-		elif i[0] == 'MoveAccountLastMovedDate':
-			moved_last_time = int(i[1]) if i[1] else 0
+		if   i.name == 'MoveAccountTimes':
+			moved_times = int(i.value) if i.value else 0
+		elif i.name == 'MoveAccountLastMovedDate':
+			moved_last_time = int(i.value) if i.value else 0
 
 	utc_0 = datetime.datetime.utcfromtimestamp(0)
 
@@ -485,7 +485,7 @@ def _list_etickets(parser, parsed_args):
 			{'ETicketInfos': accountetickets.eticketinfos},
 			out,
 			indent=2,
-			default=lambda x: x.__dict__
+			default=lambda x: x.asdict()
 		)
 		print("")
 

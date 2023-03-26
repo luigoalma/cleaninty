@@ -7,6 +7,7 @@ from .exception import OperationError, CTRExceptionBase
 from ..movablesed import MovableSed
 from ..regionaldata import Country, CountryType
 from ._common_parsers import _parse_attribute_member_prefixed
+from .types import AttributePair
 
 # no IAS commands left to add
 
@@ -499,5 +500,5 @@ class GetAccountAttributesByProfile(soapenvelopebase.SoapEnvelopeBase):
 		return self._accountattribits
 
 	@property
-	def accountattributes(self) -> typing.Iterator[typing.Tuple[str, str]]:
+	def accountattributes(self) -> typing.Iterable[AttributePair]:
 		return self._accountattributes

@@ -259,7 +259,7 @@ class GetSystemUpdate(soapenvelopebase.SoapEnvelopeBase):
 		return self._uncachedcontextprefixurl
 
 	@property
-	def titles(self) -> typing.Iterator[
+	def titles(self) -> typing.Iterable[
 		typing.Tuple[
 			int, int, typing.Optional[int], typing.Optional[int], typing.Optional[int]
 		]
@@ -309,11 +309,11 @@ class GetSystemCommonETicket(soapenvelopebase.SoapEnvelopeBase):
 			raise soapenvelopebase.XMLParseError("Unexpected exception while parsing XML") from e
 
 	@property
-	def cetks(self) -> typing.Iterator[Ticket]:
+	def cetks(self) -> typing.Iterable[Ticket]:
 		return self._cetks
 
 	@property
-	def certs(self) -> typing.Iterator[Certificate]:
+	def certs(self) -> typing.Iterable[Certificate]:
 		return self._certs
 
 	@property

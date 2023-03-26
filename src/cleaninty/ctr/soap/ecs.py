@@ -1,5 +1,4 @@
 import base64, typing, re
-from collections import OrderedDict
 
 from ...nintendowifi import soapenvelopebase
 from .manager import CtrSoapManager, ServiceLevel
@@ -8,7 +7,7 @@ from .exception import OperationError, CTRExceptionBase
 from ..certificate import Certificate
 from ..ticket import Ticket
 from ._common_parsers import _parse_attribute_member
-from .._py_ver_fixes import LimitKind_T
+from .types import AttributePair, ETicketInfo, SavedCardInfo, TransactionInfo, AmountCurrencyPair, ContentLimits
 
 #TODO:
 # - GetTaxes
@@ -34,126 +33,6 @@ __all__ = [
 	"ETicketInfo",
 	"SavedCardInfo"
 ]
-
-class ETicketInfo:
-	def __init__(
-		self,
-		ticketid: int,
-		titleid: int,
-		version: int,
-		formatversion: int,
-		migratecount: int,
-		migratelimit: int,
-		estimatedsize: int
-	):
-		self._ticketid = ticketid
-		self._titleid = titleid
-		self._version = version
-		self._formatversion = formatversion
-		self._migratecount = migratecount
-		self._migratelimit = migratelimit
-		self._estimatedsize = estimatedsize
-
-	@property
-	def __dict__(self):
-		ret = OrderedDict()
-		ret['TicketId'] = str(self._ticketid)
-		ret['TitleId'] = f"{self._titleid:016X}"
-		ret['Version'] = str(self._version)
-		ret['FormatVersion'] = str(self._formatversion)
-		ret['MigrateCount'] = str(self._migratecount)
-		ret['MigrateLimit'] = str(self._migratelimit)
-		ret['EstimatedSize'] = str(self._estimatedsize)
-		return ret
-
-	@property
-	def ticketid(self) -> int:
-		return self._ticketid
-
-	@property
-	def titleid(self) -> int:
-		return self._titleid
-
-	@property
-	def version(self) -> int:
-		return self._version
-
-	@property
-	def formatversion(self) -> int:
-		return self._formatversion
-
-	@property
-	def migratecount(self) -> int:
-		return self._migratecount
-
-	@property
-	def migratelimit(self) -> int:
-		return self._migratelimit
-
-	@property
-	def estimatedsize(self) -> int:
-		return self._estimatedsize
-
-class SavedCardInfo:
-	def __init__(
-		self,
-		cardtype: str,
-		expirationmonth: str,
-		expirationyear: str,
-		maskedcardnumber: str
-	):
-		if len(cardtype) > 1 or len(expirationmonth) > 2 or \
-			len(expirationyear) > 2 or len(maskedcardnumber) < 4:
-			raise DataProcessingError("Invalid saved card information!")
-
-		self._cardtype = cardtype
-		self._expirationmonth = expirationmonth
-		self._expirationyear = expirationyear
-		self._maskedcardnumber = maskedcardnumber[-4:]
-
-	@property
-	def cardtype(self) -> str:
-		return self._cardtype
-
-	@property
-	def expirationmonth(self) -> str:
-		return self._expirationmonth
-
-	@property
-	def expirationyear(self) -> str:
-		return self._expirationyear
-
-	@property
-	def maskedcardnumber(self) -> str:
-		return self._maskedcardnumber
-
-class TransactionInfo:
-	def __init__(
-		self,
-		transactionid: int,
-		date: int,
-		_type: str
-	):
-		if not -0x8000000000000000 <= transactionid <= 0x7fffffffffffffff or \
-			not -0x8000000000000000 <= date <= 0x7fffffffffffffff or \
-			len(_type) > 15:
-			raise DataProcessingError("Invalid transaction information!")
-
-		self._transactionid = transactionid
-		self._date = date
-		self._type = _type
-
-	@property
-	def transactionid(self) -> int:
-		return self._transactionid
-
-	@property
-	def date(self) -> int:
-		return self._date
-
-	@property
-	def type(self) -> str:
-		return self._type
 
 def _xml_get_tiv_element(
 	parent: soapenvelopebase.SoapEnvelopeBase,
@@ -187,13 +66,13 @@ def _xml_get_balance_element(
 	parent: soapenvelopebase.SoapEnvelopeBase,
 	element: soapenvelopebase.XML_Element,
 	optional: bool
-) -> typing.Optional[typing.Tuple[str,str]]:
+) -> typing.Optional[AmountCurrencyPair]:
 	parent._xml_raise_if_text(element)
 	amount = parent._xml_element_parse(element, 'urn:Amount', parent._xml_get_str_element, optional)
 	currency = parent._xml_element_parse(element, 'urn:Currency', parent._xml_get_str_element, optional)
 	if amount is None or currency is None:
 		return None
-	return (amount, currency)
+	return AmountCurrencyPair(amount, currency)
 
 def _xml_get_saved_card_element(
 	parent: soapenvelopebase.SoapEnvelopeBase,
@@ -303,12 +182,12 @@ class AccountListETicketIds(soapenvelopebase.SoapEnvelopeBase):
 			raise soapenvelopebase.XMLParseError("Unexpected exception while parsing XML") from e
 
 	@property
-	def tivs(self) -> typing.Iterator[typing.Tuple[int, int]]:
+	def tivs(self) -> typing.Iterable[typing.Tuple[int, int]]:
 		return self._tivs
 
 class AccountGetETicketDetails(soapenvelopebase.SoapEnvelopeBase):
 	@soapenvelopebase.ObjectTimingEmuHelper(0.9, 0.125)
-	def __init__(self, ctrsoapmanager: CtrSoapManager, etickets: typing.Iterator[int]):
+	def __init__(self, ctrsoapmanager: CtrSoapManager, etickets: typing.Iterable[int]):
 		if not isinstance(ctrsoapmanager, CtrSoapManager):
 			raise ClassInitError("Expected CtrSoapManager")
 
@@ -333,12 +212,12 @@ class AccountGetETicketDetails(soapenvelopebase.SoapEnvelopeBase):
 			raise soapenvelopebase.XMLParseError("Unexpected exception while parsing XML") from e
 
 	@property
-	def eticketinfos(self) -> typing.Iterator[ETicketInfo]:
+	def eticketinfos(self) -> typing.Iterable[ETicketInfo]:
 		return self._eticketinfos
 
 class AccountGetETickets(soapenvelopebase.SoapEnvelopeBase):
 	@soapenvelopebase.ObjectTimingEmuHelper(0.9, 0.125)
-	def __init__(self, ctrsoapmanager: CtrSoapManager, etickets_ids: typing.Iterator[int]):
+	def __init__(self, ctrsoapmanager: CtrSoapManager, etickets_ids: typing.Iterable[int]):
 		if not isinstance(ctrsoapmanager, CtrSoapManager):
 			raise ClassInitError("Expected CtrSoapManager")
 
@@ -372,11 +251,11 @@ class AccountGetETickets(soapenvelopebase.SoapEnvelopeBase):
 			raise soapenvelopebase.XMLParseError("Unexpected exception while parsing XML") from e
 
 	@property
-	def etickets(self) -> typing.Iterator[Ticket]:
+	def etickets(self) -> typing.Iterable[Ticket]:
 		return self._etickets
 
 	@property
-	def certs(self) -> typing.Iterator[Certificate]:
+	def certs(self) -> typing.Iterable[Certificate]:
 		return self._certs
 
 	@property
@@ -406,7 +285,7 @@ class AccountCheckBalance(soapenvelopebase.SoapEnvelopeBase):
 			raise soapenvelopebase.XMLParseError("Unexpected exception while parsing XML") from e
 
 	@property
-	def balance(self) -> typing.Tuple[str,str]:
+	def balance(self) -> AmountCurrencyPair:
 		return self._balance
 
 class CheckECard(soapenvelopebase.SoapEnvelopeBase):
@@ -415,7 +294,7 @@ class CheckECard(soapenvelopebase.SoapEnvelopeBase):
 		self,
 		ctrsoapmanager: CtrSoapManager,
 		ecardid: str,
-		ecardattributes: typing.Iterator[str]
+		ecardattributes: typing.Iterable[str]
 	):
 		if not isinstance(ctrsoapmanager, CtrSoapManager):
 			raise ClassInitError("Expected CtrSoapManager")
@@ -447,7 +326,7 @@ class CheckECard(soapenvelopebase.SoapEnvelopeBase):
 			raise soapenvelopebase.XMLParseError("Unexpected exception while parsing XML") from e
 
 	@property
-	def ecardattributes(self) -> typing.Iterator[typing.Tuple[str, str]]:
+	def ecardattributes(self) -> typing.Iterable[AttributePair]:
 		return self._ecardattributes
 
 class CurrencyAccountsCheckBalance(soapenvelopebase.SoapEnvelopeBase):
@@ -474,7 +353,7 @@ class CurrencyAccountsCheckBalance(soapenvelopebase.SoapEnvelopeBase):
 			raise soapenvelopebase.XMLParseError("Unexpected exception while parsing XML") from e
 
 	@property
-	def balances(self) -> typing.Iterator[typing.Tuple[str,str]]:
+	def balances(self) -> typing.Iterable[AmountCurrencyPair]:
 		return self._balances
 
 class AccountDeleteTitleETickets(soapenvelopebase.SoapEnvelopeBase):
@@ -519,10 +398,7 @@ class DownloadExpressETicket(soapenvelopebase.SoapEnvelopeBase):
 		titleid: int,
 		limits: typing.Optional[
 			typing.Iterable[
-				typing.Tuple[
-					int, # limits
-					LimitKind_T # limit kind
-				]
+				ContentLimits
 			]
 		] = None,
 		purchasenotes: typing.Optional[str] = None
@@ -533,7 +409,11 @@ class DownloadExpressETicket(soapenvelopebase.SoapEnvelopeBase):
 		if not -0x80000000 <= itemid <= 0x7fffffff:
 			raise DataProcessingError("Invalid item id")
 
-		limits = limits if limits else ((0, 'PR'),)
+		limits = limits if limits else (ContentLimits(0, 'PR'),)
+
+		for i in limits:
+			if not isinstance(limits, ContentLimits):
+				raise DataProcessingError("At least one limit is not ContentLimits")
 
 		super().__init__(soapenvelopebase.SoapSubNames.ECS, 'DownloadExpressETicket', ctrsoapmanager, True, False)
 
@@ -541,11 +421,9 @@ class DownloadExpressETicket(soapenvelopebase.SoapEnvelopeBase):
 		self._write_tag('TitleId', f"{titleid:016X}")
 
 		for i in limits:
-			if not -0x80000000 <= i[0] <= 0x7fffffff:
-				raise DataProcessingError("Invalid limits")
 			self._push_tag('Limits')
-			self._write_tag('Limits', f"{i[0]}")
-			self._write_tag('LimitKind', i[1][:4])
+			self._write_tag('Limits', f"{i.limits}")
+			self._write_tag('LimitKind', i.limitkind)
 			self._pop_tag()
 
 		self._write_tag('DeviceCert', base64.b64encode(ctrsoapmanager.ct_cert).decode('utf-8'))
@@ -694,7 +572,7 @@ class GetAccountStatus(soapenvelopebase.SoapEnvelopeBase):
 		return self._accountstatus
 
 	@property
-	def balance(self) -> typing.Optional[typing.Tuple[str,str]]:
+	def balance(self) -> typing.Optional[AmountCurrencyPair]:
 		return self._balance
 
 	@property
@@ -718,7 +596,7 @@ class GetAccountStatus(soapenvelopebase.SoapEnvelopeBase):
 		return self._accountattributes
 
 	@property
-	def tivs(self) -> typing.Optional[typing.Iterator[typing.Tuple[int, int]]]:
+	def tivs(self) -> typing.Optional[typing.Iterable[typing.Tuple[int, int]]]:
 		return self._tivs
 
 	@property
