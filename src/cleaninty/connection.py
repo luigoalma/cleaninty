@@ -183,7 +183,7 @@ class Connection:
 
 	def set_customrequest(self, request: typing.Optional[str] = None):
 		try:
-			self._curl_handle.setopt(pycurl.CUSTOMREQUEST, str(request))
+			self._curl_handle.setopt(pycurl.CUSTOMREQUEST, request)
 		except Exception as e:
 			raise ParameterSetError("Failed setting custom request") from e
 

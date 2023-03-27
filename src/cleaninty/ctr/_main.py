@@ -325,7 +325,7 @@ def _run_unregister(device, soap_device):
 		helpers.CtrSoapUseSystemApps(soap_device, helpers.SysApps.SYSTRANSFER)
 		helpers.CtrSoapSessionConnect(soap_device)
 
-		device_ninja = NinjaManager(soap_device)
+		device_ninja = NinjaManager(soap_device, False)
 		try:
 			device_ninja.open_without_nna()
 		except NinjaException as e:

@@ -122,7 +122,7 @@ class CDN:
 		if ticket is not None and not isinstance(ticket, Ticket):
 			raise ClassInitError("ticket was given but is not a class Ticket")
 
-		if ticket.title_id != self._tid:
+		if ticket is not None and ticket.title_id != self._tid:
 			raise ClassInitError("ticket's title id does not match CDN download target")
 
 		self._tik = ticket
