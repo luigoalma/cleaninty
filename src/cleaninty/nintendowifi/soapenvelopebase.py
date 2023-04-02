@@ -268,6 +268,36 @@ class SoapEnvelopeBase(XmlParseHelper):
 		self._envelope += field
 		self._pop_tag()
 
+	def _write_tag_multi_values(
+		self,
+		name: str,
+		fields: typing.Iterable[typing.Any],
+		field_transformer: typing.Callable[[typing.Any], str] = str
+	) -> None:
+		if self._closed:
+			return
+
+		name = str(name)
+		if not self._validate_tagname(name):
+			raise InvalidTagError("Tag invalid for these SOAP purposes")
+
+		open_tag = '<{0}:{1}>'.format(
+			self._sub_name,
+			name
+		)
+
+		close_tag = '</{0}:{1}>'.format(
+			self._sub_name,
+			name
+		)
+
+		self._envelope += ''.join(
+			map(
+				lambda x: (open_tag + self._get_escaped_field(field_transformer(x)) + close_tag),
+				fields
+			)
+		)
+
 	def _close(self):
 		if self._closed:
 			return

@@ -15,6 +15,12 @@ class AttributePair:
 		clsname = self.__class__.__qualname__
 		return f"<{modname}.{clsname} name={self._name!r} value={self._value!r}>"
 
+	def asdict(self):
+		ret = OrderedDict()
+		ret['Name'] = self._name
+		ret['Value'] = self._value
+		return ret
+
 	@property
 	def name(self) -> str:
 		return self._name
@@ -91,6 +97,13 @@ class CatalogContentSizes:
 		self._id = content_id
 		self._index = content_index
 		self._size = size
+
+	def asdict(self):
+		ret = OrderedDict()
+		ret['Id'] = str(self._id)
+		ret['Index'] = str(self._index)
+		ret['Size'] = str(self._size)
+		return ret
 
 	@property
 	def id(self) -> int:
@@ -180,6 +193,14 @@ class SavedCardInfo:
 		self._expirationyear = expirationyear
 		self._maskedcardnumber = maskedcardnumber[-4:]
 
+	def asdict(self):
+		ret = OrderedDict()
+		ret['CardType'] = str(self._cardtype)
+		ret['ExpirationMonthMM'] = str(self._expirationmonth)
+		ret['ExpirationYearYY'] = str(self._expirationyear)
+		ret['MaskedCardNumber'] = str(self._maskedcardnumber)
+		return ret
+
 	@property
 	def cardtype(self) -> str:
 		return self._cardtype
@@ -212,6 +233,13 @@ class TransactionInfo:
 		self._date = date
 		self._type = _type
 
+	def asdict(self):
+		ret = OrderedDict()
+		ret['TransactionId'] = str(self._transactionid)
+		ret['Date'] = str(self._date)
+		ret['Size'] = self._type
+		return ret
+
 	@property
 	def transactionid(self) -> int:
 		return self._transactionid
@@ -234,6 +262,12 @@ class AmountCurrencyPair:
 		modname = self.__class__.__module__
 		clsname = self.__class__.__qualname__
 		return f"<{modname}.{clsname} amount={self._amount!r} currency={self._currency!r}>"
+
+	def asdict(self):
+		ret = OrderedDict()
+		ret['Amount'] = self._amount
+		ret['Currency'] = self._currency
+		return ret
 
 	@property
 	def amount(self) -> str:
@@ -259,6 +293,12 @@ class ContentLimits:
 		modname = self.__class__.__module__
 		clsname = self.__class__.__qualname__
 		return f"<{modname}.{clsname} limits={self._limits!r} limitkind={self._limitkind!r}>"
+
+	def asdict(self):
+		ret = OrderedDict()
+		ret['Limits'] = str(self._limits)
+		ret['LimitKind'] = self._limitkind
+		return ret
 
 	@property
 	def limits(self) -> int:
@@ -303,6 +343,14 @@ class ContentItemPrice:
 		clsname = self.__class__.__qualname__
 		return f"<{modname}.{clsname} itemid={self._itemid!r} price={self._price!r} limits={self._limits!r} licensekind={self._licensekind!r}>"
 
+	def asdict(self):
+		ret = OrderedDict()
+		ret['ItemId'] = str(self._itemid)
+		ret['Price'] = self._price.asdict()
+		ret['Limits'] = self._limits.asdict()
+		ret['LicenseKind'] = self._licensekind
+		return ret
+
 	@property
 	def itemid(self) -> int:
 		return self._itemid
@@ -341,6 +389,14 @@ class ContentRating:
 		clsname = self.__class__.__qualname__
 		return f"<{modname}.{clsname} name={self._name!r} rating={self._rating!r} age={self._age!r} descriptors={self._descriptors!r}>"
 
+	def asdict(self):
+		ret = OrderedDict()
+		ret['Name'] = self._name
+		ret['Rating'] = self._rating
+		ret['Age'] = str(self._age)
+		ret['Descriptors'] = self._descriptors
+		return ret
+
 	@property
 	def name(self) -> str:
 		return self._name
@@ -376,6 +432,12 @@ class CasContentIndexes:
 		modname = self.__class__.__module__
 		clsname = self.__class__.__qualname__
 		return f"<{modname}.{clsname} titleincluded={self._titleincluded!r} contentindexes={self._contentindexes!r}>"
+
+	def asdict(self):
+		ret = OrderedDict()
+		ret['TitleIncluded'] = self._titleincluded
+		ret['ContentIndex'] = [str(i) for i in self._contentindexes] if self._contentindexes is not None else None
+		return ret
 
 	@property
 	def titleincluded(self) -> typing.Optional[bool]:
@@ -433,6 +495,15 @@ class CasListResult:
 		foo += f"ratings={self._ratings!r} "
 		foo += f"prices={self._prices!r}>"
 		return foo
+
+	def asdict(self):
+		ret = OrderedDict()
+		ret['TitleId'] = f"{self._titleid:016X}"
+		ret['Contents'] = [i.asdict() for i in self._contents] if self._contents is not None else None
+		ret['Attributes'] = [i.asdict() for i in self._attributes] if self._attributes is not None else None
+		ret['Ratings'] = [i.asdict() for i in self._ratings] if self._ratings is not None else None
+		ret['Prices'] = [i.asdict() for i in self._prices] if self._prices is not None else None
+		return ret
 
 	@property
 	def titleid(self) -> int:

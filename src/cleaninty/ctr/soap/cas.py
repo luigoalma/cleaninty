@@ -249,8 +249,7 @@ class _SharedListingBase(soapenvelopebase.SoapEnvelopeBase):
 		self._write_tag('ListResultOffset', list_offset)
 		self._write_tag('ListResultLimit', list_limit)
 
-		for i in attributes:
-			self._write_tag('Attributes', i)
+		self._write_tag_multi_values('Attributes', i)
 
 		for i in additional_attribute_filters:
 			self._push_tag('AttributeFilters')
@@ -270,8 +269,7 @@ class _SharedListingBase(soapenvelopebase.SoapEnvelopeBase):
 				self._write_tag('FilterType', i.filter_type)
 				self._write_tag('DataType', i.data_type)
 				self._write_tag('Name', i.name)
-				for j in i.values:
-					self._write_tag('Value', j)
+				self._write_tag_multi_values('Value', i.values)
 				self._pop_tag()
 			if order_attributes:
 				self._push_tag('OrderByAttribute')
@@ -283,8 +281,7 @@ class _SharedListingBase(soapenvelopebase.SoapEnvelopeBase):
 		for i in additional_soap_tags:
 			self._write_tag(i[0], i[1])
 
-		for i in title_ids:
-			self._write_tag('TitleId', f"{int(i):016X}")
+		self._write_tag_multi_values('TitleId', title_ids, lambda x: format(x, '016X'))
 
 		ret = self._send(ctrsoapmanager.get_url_by_identifier('cas'))
 		if ret != 200:
