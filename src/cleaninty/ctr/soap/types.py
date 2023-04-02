@@ -524,3 +524,35 @@ class CasListResult:
 	@property
 	def prices(self) -> typing.Optional[typing.Iterable[ContentItemPrice]]:
 		return self._prices
+
+# cas
+class CasAttributeGroups:
+	def __init__(
+		self,
+		name: str,
+		size: int,
+	):
+		self._name = str(name)
+		self._size = int(size)
+
+		if not 0 <= self._size <= 0xffffffff:
+			raise DataProcessingError("Size limited to u32")
+
+	def __repr__(self):
+		modname = self.__class__.__module__
+		clsname = self.__class__.__qualname__
+		return f"<{modname}.{clsname} name={self._name!r} size={self._size!r}>"
+
+	def asdict(self):
+		ret = OrderedDict()
+		ret['Name'] = str(self._name)
+		ret['Size'] = int(self._size)
+		return ret
+
+	@property
+	def name(self) -> str:
+		return self._name
+
+	@property
+	def size(self) -> int:
+		return self._size

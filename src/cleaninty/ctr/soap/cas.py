@@ -7,10 +7,9 @@ from .exception import OperationError, CTRExceptionBase
 from ..title import Title
 from ._common_parsers import _parse_attribute_member, _get_str_limited_parser
 from .types import AttributePair, AttributeFilterEx, AttributeOrdering, CatalogContentSizes, AmountCurrencyPair
-from .types import ContentLimits, ContentItemPrice, ContentRating, CasContentIndexes, CasListResult
+from .types import ContentLimits, ContentItemPrice, ContentRating, CasContentIndexes, CasListResult, CasAttributeGroups
 
-#TODO:
-# - ListContentSetGroups
+# no CAS commands left to add
 
 __all__ = [
 	"GetContentSizes",
@@ -20,7 +19,8 @@ __all__ = [
 	"ListECardItems",
 	"ListTitlesEx",
 	"ListContentSetsEx",
-	"ListItems"
+	"ListItems",
+	"ListContentSetGroups"
 ]
 
 def _xml_get_contentsize(
@@ -304,7 +304,7 @@ class _SharedListingBase(soapenvelopebase.SoapEnvelopeBase):
 		cls,
 		parent: soapenvelopebase.SoapEnvelopeBase,
 		element: soapenvelopebase.XML_Element
-	):
+	) -> CasListResult:
 		parent._xml_raise_if_text(element)
 		titleid = parent._xml_element_parse(element, 'urn:TitleId', parent._xml_get_u64_base16_element)
 		contents = parent._xml_multi_element_parse(element, 'urn:Contents', cls._content_parser, True)
@@ -485,3 +485,68 @@ class ListItems(_SharedListingBase):
 			attribute_filters=attribute_filters,
 			additional_attribute_filters=additional_attribute_filters
 		)
+
+class ListContentSetGroups(soapenvelopebase.SoapEnvelopeBase):
+	@soapenvelopebase.ObjectTimingEmuHelper(0.9, 0.125)
+	def __init__(
+		self,
+		ctrsoapmanager: CtrSoapManager,
+		list_offset: int,
+		list_limit: int,
+		group_name: str,
+		group_len: int,
+		title_ids: typing.Iterable[int] = []
+	):
+		if not isinstance(ctrsoapmanager, CtrSoapManager):
+			raise ClassInitError("Expected CtrSoapManager")
+
+		if not -0x8000000000000000 <= group_len <= 0x7fffffffffffffff:
+			raise ClassInitError("Invalid Group Length")
+
+		super().__init__(soapenvelopebase.SoapSubNames.CAS, "ListContentSetGroups", ctrsoapmanager, False, True)
+
+		self._write_tag('ListResultOffset', list_offset)
+		self._write_tag('ListResultLimit', list_limit)
+
+		self._push_tag('GroupFilter')
+		self._write_tag('Name', group_name)
+		self._write_tag('Len', group_len)
+		self._pop_tag()
+
+		self._write_tag_multi_values('TitleId', title_ids, lambda x: format(x, '016X'))
+
+		ret = self._send(ctrsoapmanager.get_url_by_identifier('cas'))
+		if ret != 200:
+			raise OperationError("Bad HTTP response or connection error, ret = {0}".format(ret))
+
+		response_parse = self._initiate_response_parse()
+		self._validate_errorcode(self.errorcode, self.errormessage)
+		try:
+			response = response_parse[1]
+			self._list_results_total_size = self._xml_element_parse(response, 'urn:ListResultTotalSize', self._xml_get_int_element)
+			self._attribute_groups = self._xml_multi_element_parse(response, f'urn:AttributeGroups', self._groups_parser, True)
+			self._attribute_groups = tuple(self._attribute_groups) if self._attribute_groups is not None else tuple()
+		except CTRExceptionBase:
+			raise
+		except Exception as e:
+			raise soapenvelopebase.XMLParseError("Unexpected exception while parsing XML") from e
+
+	@classmethod
+	def _groups_parser(
+		cls,
+		parent: soapenvelopebase.SoapEnvelopeBase,
+		element: soapenvelopebase.XML_Element
+	) -> CasAttributeGroups:
+		parent._xml_raise_if_text(element)
+		name = parent._xml_element_parse(element, 'urn:Name', parent._xml_get_str_element)
+		size = parent._xml_multi_element_parse(element, 'urn:Size', parent._xml_get_s64_element) # processed as a s64, downscalled to s32 or u32
+		size = size & 0xFFFFFFFF
+		return CasAttributeGroups(name, size)
+
+	@property
+	def list_results_total_size(self) -> int:
+		return self._list_results_total_size
+
+	@property
+	def attribute_groups(self) -> typing.Iterable[CasAttributeGroups]:
+		return self._attribute_groups
