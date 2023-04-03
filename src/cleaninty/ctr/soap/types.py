@@ -184,8 +184,8 @@ class SavedCardInfo:
 		expirationyear: str,
 		maskedcardnumber: str
 	):
-		if len(cardtype) > 1 or len(expirationmonth) > 2 or \
-			len(expirationyear) > 2 or len(maskedcardnumber) < 4:
+		if len(cardtype.encode('utf-8')) > 1 or len(expirationmonth.encode('utf-8')) > 2 or \
+			len(expirationyear.encode('utf-8')) > 2 or len(maskedcardnumber.encode('utf-8')) < 4:
 			raise DataProcessingError("Invalid saved card information!")
 
 		self._cardtype = cardtype
@@ -226,7 +226,7 @@ class TransactionInfo:
 	):
 		if not -0x8000000000000000 <= transactionid <= 0x7fffffffffffffff or \
 			not -0x8000000000000000 <= date <= 0x7fffffffffffffff or \
-			len(_type) > 15:
+			len(_type.encode('utf-8')) > 15:
 			raise DataProcessingError("Invalid transaction information!")
 
 		self._transactionid = transactionid
@@ -318,12 +318,12 @@ class ContentItemPrice:
 		self,
 		itemid: int,
 		price: AmountCurrencyPair,
-		limits: ContentLimits,
+		limits: typing.Optional[typing.Iterable[ContentLimits]],
 		licensekind: LicenseKind_T
 	):
 		self._itemid = int(itemid)
 		self._price = price
-		self._limits = limits
+		self._limits = tuple(limits) if limits is not None else tuple()
 		self._licensekind = str(licensekind)
 
 		if not -0x80000000 <= self._itemid <= 0x7fffffff:
@@ -332,8 +332,14 @@ class ContentItemPrice:
 		if not isinstance(self._price, AmountCurrencyPair):
 			raise DataProcessingError("Expected AmountCurrencyPair for Price")
 
-		if not isinstance(self._limits, ContentLimits):
-			raise DataProcessingError("Expected ContentLimits for Limits")
+		def check(x, _type):
+			for i in x:
+				if not isinstance(i, _type):
+					return False
+			return True
+
+		if not check(self._limits, ContentLimits):
+			raise DataProcessingError("At least one limit is not ContentLimits")
 
 		if self._licensekind not in ['PERMANENT', 'DEMO', 'TRIAL', 'RENTAL', 'SUBSCRIPT', 'SERVICE']:
 			raise DataProcessingError(f"LicenseKind is invalid, got {licensekind}")
@@ -347,7 +353,7 @@ class ContentItemPrice:
 		ret = OrderedDict()
 		ret['ItemId'] = str(self._itemid)
 		ret['Price'] = self._price.asdict()
-		ret['Limits'] = self._limits.asdict()
+		ret['Limits'] = [i.asdict() for i in self._limits]
 		ret['LicenseKind'] = self._licensekind
 		return ret
 
@@ -360,7 +366,7 @@ class ContentItemPrice:
 		return self._price
 
 	@property
-	def limits(self) -> ContentLimits:
+	def limits(self) -> typing.Iterable[ContentLimits]:
 		return self._limits
 
 	@property
@@ -421,7 +427,7 @@ class CasContentIndexes:
 		contentindexes: typing.Optional[typing.Iterable[int]]
 	):
 		self._titleincluded = bool(titleincluded) if titleincluded is not None else None
-		self._contentindexes = tuple(contentindexes) if contentindexes is not None else None
+		self._contentindexes = tuple(contentindexes) if contentindexes is not None else tuple()
 
 		if self._contentindexes is not None:
 			for i in self._contentindexes:
@@ -436,7 +442,7 @@ class CasContentIndexes:
 	def asdict(self):
 		ret = OrderedDict()
 		ret['TitleIncluded'] = self._titleincluded
-		ret['ContentIndex'] = [str(i) for i in self._contentindexes] if self._contentindexes is not None else None
+		ret['ContentIndex'] = [str(i) for i in self._contentindexes]
 		return ret
 
 	@property
@@ -444,8 +450,8 @@ class CasContentIndexes:
 		return self._titleincluded
 
 	@property
-	def contentindexes(self) -> typing.Optional[int]:
-		return self._contentindex
+	def contentindexes(self) -> typing.Iterable[int]:
+		return self._contentindexes
 
 # cas
 class CasListResult:
@@ -457,20 +463,19 @@ class CasListResult:
 		ratings: typing.Optional[typing.Iterable[ContentRating]],
 		prices: typing.Optional[typing.Iterable[ContentItemPrice]]
 	):
-		self._titleid = int(titleid) if titleid is not None else None
-		self._contents = tuple(contents) if contents is not None else None
-		self._attributes = tuple(attributes) if attributes is not None else None
-		self._ratings = tuple(ratings) if ratings is not None else None
-		self._prices = tuple(prices) if prices is not None else None
+		self._titleid = int(titleid)
+		self._contents = tuple(contents) if contents is not None else tuple()
+		self._attributes = tuple(attributes) if attributes is not None else tuple()
+		self._ratings = tuple(ratings) if ratings is not None else tuple()
+		self._prices = tuple(prices) if prices is not None else tuple()
 
 		if not 0 <= self._titleid <= 0xffffffffffffffff:
 			raise DataProcessingError("TitleId go outside range of an u64")
 
 		def check(x, _type):
-			if x is not None:
-				for i in x:
-					if not isinstance(i, _type):
-						return False
+			for i in x:
+				if not isinstance(i, _type):
+					return False
 			return True
 
 		if not check(self._contents, CasContentIndexes):
@@ -499,10 +504,10 @@ class CasListResult:
 	def asdict(self):
 		ret = OrderedDict()
 		ret['TitleId'] = f"{self._titleid:016X}"
-		ret['Contents'] = [i.asdict() for i in self._contents] if self._contents is not None else None
-		ret['Attributes'] = [i.asdict() for i in self._attributes] if self._attributes is not None else None
-		ret['Ratings'] = [i.asdict() for i in self._ratings] if self._ratings is not None else None
-		ret['Prices'] = [i.asdict() for i in self._prices] if self._prices is not None else None
+		ret['Contents'] = [i.asdict() for i in self._contents]
+		ret['Attributes'] = [i.asdict() for i in self._attributes]
+		ret['Ratings'] = [i.asdict() for i in self._ratings]
+		ret['Prices'] = [i.asdict() for i in self._prices]
 		return ret
 
 	@property
@@ -510,19 +515,19 @@ class CasListResult:
 		return self._titleid
 
 	@property
-	def contents(self) -> typing.Optional[typing.Iterable[CasContentIndexes]]:
+	def contents(self) -> typing.Iterable[CasContentIndexes]:
 		return self._contents
 
 	@property
-	def attributes(self) -> typing.Optional[typing.Iterable[AttributePair]]:
+	def attributes(self) -> typing.Iterable[AttributePair]:
 		return self._attributes
 
 	@property
-	def ratings(self) -> typing.Optional[typing.Iterable[ContentRating]]:
+	def ratings(self) -> typing.Iterable[ContentRating]:
 		return self._ratings
 
 	@property
-	def prices(self) -> typing.Optional[typing.Iterable[ContentItemPrice]]:
+	def prices(self) -> typing.Iterable[ContentItemPrice]:
 		return self._prices
 
 # cas
@@ -545,8 +550,8 @@ class CasAttributeGroups:
 
 	def asdict(self):
 		ret = OrderedDict()
-		ret['Name'] = str(self._name)
-		ret['Size'] = int(self._size)
+		ret['Name'] = self._name
+		ret['Size'] = str(self._size)
 		return ret
 
 	@property

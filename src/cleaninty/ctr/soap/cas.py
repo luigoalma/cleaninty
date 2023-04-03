@@ -5,7 +5,7 @@ from .manager import CtrSoapManager
 from ..exception import ClassInitError, DataProcessingError
 from .exception import OperationError, CTRExceptionBase
 from ..title import Title
-from ._common_parsers import _parse_attribute_member, _get_str_limited_parser
+from ._common_parsers import _parse_attribute_member, _get_str_limited_parser, _content_limit_parser
 from .types import AttributePair, AttributeFilterEx, AttributeOrdering, CatalogContentSizes, AmountCurrencyPair
 from .types import ContentLimits, ContentItemPrice, ContentRating, CasContentIndexes, CasListResult, CasAttributeGroups
 
@@ -336,15 +336,17 @@ class _SharedListingBase(soapenvelopebase.SoapEnvelopeBase):
 		descriptors = parent._xml_element_parse(element, 'urn:Descriptors', parent._xml_get_str_element)
 		return ContentRating(name, rating, age, descriptors)
 
-	@staticmethod
+	@classmethod
 	def _price_parser(
+		cls,
 		parent: soapenvelopebase.SoapEnvelopeBase,
 		element: soapenvelopebase.XML_Element
 	) -> ContentItemPrice:
 		parent._xml_raise_if_text(element)
 		itemid = parent._xml_element_parse(element, 'urn:ItemId', parent._xml_get_s32_element)
-		price = parent._xml_element_parse(element, 'urn:Price', parent._price_value_parser)
-		limits = parent._xml_element_parse(element, 'urn:Limits', parent._limit_parser)
+		price = parent._xml_element_parse(element, 'urn:Price', cls._price_value_parser)
+		limits = parent._xml_multi_element_parse(element, 'urn:Limits', _content_limit_parser, True)
+		limits = tuple(limits) if limits is not None else tuple()
 		licensekind = parent._xml_element_parse(element, 'urn:LicenseKind', parent._xml_get_str_element)
 		return ContentItemPrice(itemid, price, limits, licensekind)
 
@@ -358,16 +360,6 @@ class _SharedListingBase(soapenvelopebase.SoapEnvelopeBase):
 		amount = parent._xml_element_parse(element, 'urn:Amount', get_capped_str)
 		currency = parent._xml_element_parse(element, 'urn:Currency', get_capped_str)
 		return AmountCurrencyPair(amount, currency)
-
-	@staticmethod
-	def _limit_parser(
-		parent: soapenvelopebase.SoapEnvelopeBase,
-		element: soapenvelopebase.XML_Element
-	) -> ContentLimits:
-		parent._xml_raise_if_text(element)
-		limits = parent._xml_element_parse(element, 'urn:Limits', parent._xml_get_u32_element)
-		limitkind = parent._xml_element_parse(element, 'urn:LimitKind', _get_str_limited_parser(4))
-		return ContentLimits(limits, limitkind)
 
 	@property
 	def list_results_total_size(self) -> int:
@@ -531,9 +523,8 @@ class ListContentSetGroups(soapenvelopebase.SoapEnvelopeBase):
 		except Exception as e:
 			raise soapenvelopebase.XMLParseError("Unexpected exception while parsing XML") from e
 
-	@classmethod
+	@staticmethod
 	def _groups_parser(
-		cls,
 		parent: soapenvelopebase.SoapEnvelopeBase,
 		element: soapenvelopebase.XML_Element
 	) -> CasAttributeGroups:

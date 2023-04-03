@@ -52,3 +52,12 @@ def _get_str_limited_parser(
 	) -> str:
 		return _xml_get_str_len_limited(parent, element, length)
 	return inner
+
+def _content_limit_parser(
+	parent: soapenvelopebase.SoapEnvelopeBase,
+	element: soapenvelopebase.XML_Element
+) -> ContentLimits:
+	parent._xml_raise_if_text(element)
+	limits = parent._xml_element_parse(element, 'urn:Limits', parent._xml_get_u32_element)
+	limitkind = parent._xml_element_parse(element, 'urn:LimitKind', _get_str_limited_parser(4))
+	return ContentLimits(limits, limitkind)
