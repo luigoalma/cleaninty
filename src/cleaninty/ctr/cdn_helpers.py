@@ -114,7 +114,7 @@ class CiaCDNBuilder:
 				self._error()
 				break
 
-			indexes = int.to_bytes(self._index_field, 0x2000, 'big')
+			indexes = self._index_field.to_bytes(0x2000, 'big')
 
 			written = self._outfile.write(
 				pack(

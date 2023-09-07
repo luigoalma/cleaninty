@@ -91,7 +91,7 @@ class ContentChunkRecord:
 
 	@property
 	def iv(self) -> bytes:
-		return int.to_bytes(self._content_index, 'big').ljust(16, b'\x00')
+		return self._content_index.to_bytes(2, 'big').ljust(16, b'\x00')
 
 	@property
 	def id(self) -> int:

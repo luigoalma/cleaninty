@@ -176,7 +176,7 @@ class Ticket(digsign.IssuedObject):
 		tik_pubkey = ec.EllipticCurvePublicNumbers(x, y, ec.SECT233R1()).public_key(default_backend())
 
 		aes_key = hashlib.sha1(ct_ec_prikkey.exchange(ec.ECDH(), tik_pubkey)).digest()[:16]
-		iv = int.to_bytes(tik_id << 64, 16, 'big')
+		iv = (tik_id << 64).to_bytes(16, 'big')
 
 		return (aes_key, iv)
 
