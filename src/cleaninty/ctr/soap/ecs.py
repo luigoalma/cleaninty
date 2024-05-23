@@ -6,19 +6,19 @@ from ..exception import ClassInitError, DataProcessingError
 from .exception import OperationError, CTRExceptionBase
 from ..certificate import Certificate
 from ..ticket import Ticket
-from ._common_parsers import _parse_attribute_member
-from .types import AttributePair, ETicketInfo, SavedCardInfo, TransactionInfo, AmountCurrencyPair, ContentLimits
+from ._common_parsers import _parse_attribute_member, _get_str_limited_parser, _content_limit_parser
+from .types import AttributePair, ETicketInfo, SavedCardInfo, AmountCurrencyPair, ContentLimits, EcsItemPricing, TransactionInfo
 
 #TODO:
 # - GetTaxes
 # - GetPurchaseInfo
 # - GetTaxLocation
-# - AccountListPurchaseHistory
 # - AccountPurchaseTitle
 # - AccountReplenishment
 
 __all__ = [
 	"AccountListETicketIds",
+	"AccountListPurchaseHistory",
 	"AccountGetETicketDetails",
 	"AccountGetETickets",
 	"AccountCheckBalance",
@@ -39,25 +39,25 @@ def _xml_get_tiv_element(
 	element: soapenvelopebase.XML_Element
 ) -> typing.Tuple[int,int]:
 	text = parent._xml_get_str_element(parent, element)
-	if not re.fullmatch("^[0-9]+\\.[0-9]+$", text):
+	match = re.fullmatch("^([0-9]+)\\.([0-9]+)$", text)
+	if not match:
 		raise soapenvelopebase.XMLParseError("Invalid TIV found")
 
-	split = text.split('.')
-	return (int(split[0]), int(split[1]))
+	return (int(match.group(1), 10), int(match.group(2), 10))
 
 def _xml_get_eticketinfo_element(
 	parent: soapenvelopebase.SoapEnvelopeBase,
 	element: soapenvelopebase.XML_Element
 ) -> ETicketInfo:
 	parent._xml_raise_if_text(element)
-	ticketid = parent._xml_element_parse(element, 'urn:TicketId', parent._xml_get_int_element)
-	titleid = parent._xml_element_parse(element, 'urn:TitleId', parent._xml_get_int_base16_element)
-	version = parent._xml_element_parse(element, 'urn:Version', parent._xml_get_int_element)
-	formatversion = parent._xml_element_parse(element, 'urn:FormatVersion', parent._xml_get_int_element, True)
+	ticketid = parent._xml_element_parse(element, 'urn:TicketId', parent._xml_get_s64_element)
+	titleid = parent._xml_element_parse(element, 'urn:TitleId', parent._xml_get_u64_base16_element)
+	version = parent._xml_element_parse(element, 'urn:Version', parent._xml_get_s32_element)
+	formatversion = parent._xml_element_parse(element, 'urn:FormatVersion', parent._xml_get_s32_element, True)
 	formatversion = formatversion if formatversion is not None else 0
-	migratecount = parent._xml_element_parse(element, 'urn:MigrateCount', parent._xml_get_int_element)
-	migratelimit = parent._xml_element_parse(element, 'urn:MigrateLimit', parent._xml_get_int_element)
-	estimatedsize = parent._xml_element_parse(element, 'urn:EstimatedSize', parent._xml_get_int_element, True)
+	migratecount = parent._xml_element_parse(element, 'urn:MigrateCount', parent._xml_get_s32_element)
+	migratelimit = parent._xml_element_parse(element, 'urn:MigrateLimit', parent._xml_get_s32_element)
+	estimatedsize = parent._xml_element_parse(element, 'urn:EstimatedSize', parent._xml_get_s32_element, True)
 	estimatedsize = estimatedsize if estimatedsize is not None else 0
 	return ETicketInfo(ticketid, titleid, version, formatversion, migratecount, migratelimit, estimatedsize)
 
@@ -68,8 +68,9 @@ def _xml_get_balance_element(
 	optional: bool
 ) -> typing.Optional[AmountCurrencyPair]:
 	parent._xml_raise_if_text(element)
-	amount = parent._xml_element_parse(element, 'urn:Amount', parent._xml_get_str_element, optional)
-	currency = parent._xml_element_parse(element, 'urn:Currency', parent._xml_get_str_element, optional)
+	get_capped_str = _get_str_limited_parser(31)
+	amount = parent._xml_element_parse(element, 'urn:Amount', get_capped_str, optional)
+	currency = parent._xml_element_parse(element, 'urn:Currency', get_capped_str, optional)
 	if amount is None or currency is None:
 		return None
 	return AmountCurrencyPair(amount, currency)
@@ -138,15 +139,74 @@ def _parse_account_attributes(
 	parent._xml_multi_element_parse_ret_none(element, 'urn:AccountAttributes', _parse_attribute, optional)
 	return attributes
 
+def _xml_get_transaction_element_impl(
+	parent: soapenvelopebase.SoapEnvelopeBase,
+	element: soapenvelopebase.XML_Element,
+	short_version: bool
+) -> TransactionInfo:
+	parent._xml_raise_if_text(element)
+	transactionid = parent._xml_element_parse(element, 'urn:TransactionId', parent._xml_get_s64_element)
+	date = parent._xml_element_parse(element, 'urn:Date', parent._xml_get_s64_element)
+	_type = parent._xml_element_parse(element, 'urn:Type', _get_str_limited_parser(16))
+	if short_version:
+		return TransactionInfo(transactionid, date, _type)
+
+	totalpaid = parent._xml_element_parse(element, 'urn:TotalPaid', _get_str_limited_parser(32), True)
+	currency = parent._xml_element_parse(element, 'urn:Currency', _get_str_limited_parser(32), True)
+
+	def _pricing(
+		parent: soapenvelopebase.SoapEnvelopeBase,
+		element: soapenvelopebase.XML_Element
+	) -> EcsItemPricing:
+		limits = parent._xml_multi_element_parse(element, 'urn:Limits', _content_limit_parser, True)
+		limits = tuple(limits) if limits is not None else tuple()
+		# dont know if any more exist, NIM reversal dont show signs of any more objects parsed
+		return EcsItemPricing(limits)
+
+	itempricing = parent._xml_multi_element_parse(element, 'urn:ItemPricing', _pricing, True)
+	itempricing = tuple(itempricing) if itempricing is not None else tuple()
+	titleid = parent._xml_element_parse(element, 'urn:TitleId', parent._xml_get_u64_base16_element, True)
+	itemcode = parent._xml_element_parse(element, 'urn:ItemCode', _get_str_limited_parser(20), True)
+
+	referenceid_raw = parent._xml_element_parse(element, 'urn:ReferenceId', _get_str_limited_parser(32), True)
+	if referenceid_raw is not None:
+		referenceid_raw = referenceid_raw.encode('utf-8')
+		if len(referenceid_raw) != 32:
+			raise DataProcessingError("Invalid length for ReferenceId")
+		# they did a weird conversion, any invalid chars are treated as 0
+		referenceid_raw = re.sub(b'[^0-9a-fA-F]', b'0', referenceid_raw)
+		# and uneven amount of chars for an hex, drops the last char
+		# but we already check if its 32 chars :)
+		referenceid = bytes.fromhex(referenceid_raw.decode('ascii'))
+	else:
+		referenceid = None
+
+	referencevalue = parent._xml_element_parse(element, 'urn:ReferenceValue', parent._xml_get_s64_element, True)
+	limits = parent._xml_multi_element_parse(element, 'urn:Limits', _content_limit_parser, True)
+	limits = tuple(limits) if limits is not None else tuple()
+	# extra stuff unseen on executable binary here, this is from observation of a request response dump
+	catalogref = parent._xml_element_parse(element, 'urn:CatalogRef', parent._xml_get_str_element, True)
+	itemref = parent._xml_element_parse(element, 'urn:ItemRef', parent._xml_get_int_element, True)
+	priceref = parent._xml_element_parse(element, 'urn:PriceRef', parent._xml_get_int_element, True)
+	transactionref = parent._xml_element_parse(element, 'urn:TransactionRef', parent._xml_get_int_element, True)
+
+	return TransactionInfo(
+		transactionid, date, _type, totalpaid,
+		currency, itempricing, titleid, itemcode,
+		referenceid, referencevalue, limits, catalogref,
+		itemref, priceref, transactionref)
+
 def _xml_get_transaction_element(
 	parent: soapenvelopebase.SoapEnvelopeBase,
 	element: soapenvelopebase.XML_Element
 ) -> TransactionInfo:
-	parent._xml_raise_if_text(element)
-	transactionid = parent._xml_element_parse(element, 'urn:TransactionId', parent._xml_get_int_element)
-	date = parent._xml_element_parse(element, 'urn:Date', parent._xml_get_int_element)
-	_type = parent._xml_element_parse(element, 'urn:Type', parent._xml_get_str_element)
-	return TransactionInfo(transactionid, date, _type)
+	return _xml_get_transaction_element_impl(parent, element, True)
+
+def _xml_get_full_transaction_element(
+	parent: soapenvelopebase.SoapEnvelopeBase,
+	element: soapenvelopebase.XML_Element
+) -> TransactionInfo:
+	return _xml_get_transaction_element_impl(parent, element, False)
 
 def _xml_get_titleid_ticketid_pair(
 	parent: soapenvelopebase.SoapEnvelopeBase,
@@ -154,8 +214,8 @@ def _xml_get_titleid_ticketid_pair(
 ) -> typing.Tuple[int, int]:
 	parent._xml_raise_if_text(element)
 	# titleid get checked for, but never checked or stored in actual code
-	titleid = parent._xml_element_parse(element, 'urn:TitleId', parent._xml_get_int_base16_element)
-	ticketid = parent._xml_element_parse(element, 'urn:TicketId', parent._xml_get_int_element)
+	titleid = parent._xml_element_parse(element, 'urn:TitleId', parent._xml_get_u64_base16_element)
+	ticketid = parent._xml_element_parse(element, 'urn:TicketId', parent._xml_get_s64_element)
 	return (titleid, ticketid)
 
 class AccountListETicketIds(soapenvelopebase.SoapEnvelopeBase):
@@ -184,6 +244,51 @@ class AccountListETicketIds(soapenvelopebase.SoapEnvelopeBase):
 	@property
 	def tivs(self) -> typing.Iterable[typing.Tuple[int, int]]:
 		return self._tivs
+
+class AccountListPurchaseHistory(soapenvelopebase.SoapEnvelopeBase):
+	@soapenvelopebase.ObjectTimingEmuHelper(0.9, 0.125)
+	def __init__(
+		self,
+		ctrsoapmanager: CtrSoapManager,
+		begin_date: int, # unix timestamp * 1000
+		end_date: int, # unix timestamp * 1000 # max milliseconds allowed reported by server: 4832585298182 
+		list_offset: int,
+		list_limit: int,
+	):
+		if not isinstance(ctrsoapmanager, CtrSoapManager):
+			raise ClassInitError("Expected CtrSoapManager")
+
+		super().__init__(soapenvelopebase.SoapSubNames.ECS, 'AccountListPurchaseHistory', ctrsoapmanager, True, True)
+
+		self._write_tag('beginDate', f'{begin_date}')
+		self._write_tag('endDate', f'{end_date}')
+
+		self._write_tag('ListResultOffset', list_offset)
+		self._write_tag('ListResultLimit', list_limit)
+
+		ret = self._send(ctrsoapmanager.get_url_by_identifier('ecs'))
+		if ret != 200:
+			raise OperationError("Bad HTTP response or connection error, ret = {0}".format(ret))
+
+		response_parse = self._initiate_response_parse()
+		self._validate_errorcode(self.errorcode, self.errormessage)
+		try:
+			response = response_parse[1]
+			self._transactions = self._xml_multi_element_parse(response, f'urn:Transactions', _xml_get_full_transaction_element, True)
+			self._transactions = tuple(self._transactions) if self._transactions is not None else tuple()
+			self._list_result_total_size = self._xml_element_parse(response, 'urn:ListResultTotalSize', self._xml_get_s64_element)
+		except CTRExceptionBase:
+			raise
+		except Exception as e:
+			raise soapenvelopebase.XMLParseError("Unexpected exception while parsing XML") from e
+
+	@property
+	def list_result_total_size(self) -> int:
+		return self._list_result_total_size
+
+	@property
+	def transactions(self) -> typing.Iterable[TransactionInfo]:
+		return self._transactions
 
 class AccountGetETicketDetails(soapenvelopebase.SoapEnvelopeBase):
 	@soapenvelopebase.ObjectTimingEmuHelper(0.9, 0.125)

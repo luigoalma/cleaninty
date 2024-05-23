@@ -217,41 +217,6 @@ class SavedCardInfo:
 	def maskedcardnumber(self) -> str:
 		return self._maskedcardnumber
 
-class TransactionInfo:
-	def __init__(
-		self,
-		transactionid: int,
-		date: int,
-		_type: str
-	):
-		if not -0x8000000000000000 <= transactionid <= 0x7fffffffffffffff or \
-			not -0x8000000000000000 <= date <= 0x7fffffffffffffff or \
-			len(_type.encode('utf-8')) > 15:
-			raise DataProcessingError("Invalid transaction information!")
-
-		self._transactionid = transactionid
-		self._date = date
-		self._type = _type
-
-	def asdict(self):
-		ret = OrderedDict()
-		ret['TransactionId'] = str(self._transactionid)
-		ret['Date'] = str(self._date)
-		ret['Size'] = self._type
-		return ret
-
-	@property
-	def transactionid(self) -> int:
-		return self._transactionid
-
-	@property
-	def date(self) -> int:
-		return self._date
-
-	@property
-	def type(self) -> str:
-		return self._type
-
 # ecs & cas
 class AmountCurrencyPair:
 	def __init__(self, amount: str, currency: str):
@@ -561,3 +526,160 @@ class CasAttributeGroups:
 	@property
 	def size(self) -> int:
 		return self._size
+
+# ecs
+class EcsItemPricing:
+	def __init__(
+		self,
+		limits: typing.Optional[typing.Iterable[ContentLimits]]
+	):
+		self._limits = tuple(limits) if limits is not None else tuple()
+
+		def check(x, _type):
+			for i in x:
+				if not isinstance(i, _type):
+					return False
+			return True
+
+		if not check(self._limits, ContentLimits):
+			raise DataProcessingError("At least one limit is not ContentLimits")
+
+	def __repr__(self):
+		modname = self.__class__.__module__
+		clsname = self.__class__.__qualname__
+		return f"<{modname}.{clsname} limits={self._limits!r}>"
+
+	def asdict(self):
+		ret = OrderedDict()
+		ret['Limits'] = [i.asdict() for i in self._limits]
+		return ret
+
+	@property
+	def limits(self) -> typing.Iterable[ContentLimits]:
+		return self._limits
+
+# ecs
+class TransactionInfo:
+	def __init__(
+		self,
+		transactionid: int,
+		date: int,
+		_type: str,
+		totalpaid: typing.Optional[str] = None,
+		currency: typing.Optional[str] = None,
+		itempricing: typing.Optional[typing.Iterable[EcsItemPricing]] = None,
+		titleid: typing.Optional[int] = None,
+		itemcode: typing.Optional[str] = None,
+		referenceid: typing.Optional[bytes] = None,
+		referencevalue: typing.Optional[int] = None,
+		limits: typing.Optional[typing.Iterable[ContentLimits]] = None,
+		catalogref: typing.Optional[str] = None,
+		itemref: typing.Optional[int] = None,
+		priceref: typing.Optional[int] = None,
+		transactionref: typing.Optional[int] = None
+	):
+		if not -0x8000000000000000 <= transactionid <= 0x7fffffffffffffff or \
+			not -0x8000000000000000 <= date <= 0x7fffffffffffffff or \
+			len(_type.encode('utf-8')) > 16 or \
+			(totalpaid is not None and len(totalpaid.encode('utf-8')) > 32) or \
+			(currency is not None and len(currency.encode('utf-8')) > 32) or \
+			(titleid is not None and not 0 <= titleid <= 0xffffffffffffffff) or \
+			(itemcode is not None and len(itemcode.encode('utf-8')) > 20) or \
+			(referenceid is not None and len(referenceid) != 16) or \
+			(referencevalue is not None and not -0x8000000000000000 <= referencevalue <= 0x7fffffffffffffff):
+			raise DataProcessingError("Invalid transaction information!")
+
+		self._transactionid = transactionid
+		self._date = date
+		self._type = _type
+		self._totalpaid = totalpaid
+		self._currency = currency
+		self._itempricing = tuple(itempricing) if itempricing else tuple()
+		self._titleid = titleid
+		self._itemcode = itemcode
+		self._referenceid = referenceid
+		self._referencevalue = referencevalue
+		self._limits = tuple(limits) if limits else tuple()
+		self._catalogref = catalogref
+		self._itemref = itemref
+		self._priceref = priceref
+		self._transactionref = transactionref
+
+	def asdict(self):
+		ret = OrderedDict()
+		ret['TransactionId'] = str(self._transactionid)
+		ret['Date'] = str(self._date)
+		ret['Type'] = self._type
+		ret['TotalPaid'] = self._totalpaid
+		ret['Currency'] = self._currency
+		ret['ItemPricing'] = tuple([i.asdict() for i in self._itempricing])
+		ret['TitleId'] = f"{self._titleid:016X}" if self._titleid is not None else None
+		ret['ItemCode'] = self._itemcode
+		ret['ReferenceId'] = self._referenceid.hex() if self._referenceid is not None else None
+		ret['ReferenceValue'] = str(self._referencevalue) if self._referencevalue is not None else None
+		ret['Limits'] = tuple([i.asdict() for i in self._limits])
+		ret['CatalogRef'] = self._catalogref
+		ret['ItemRef'] = str(self._itemref) if self._itemref is not None else None
+		ret['PriceRef'] = str(self._priceref) if self._priceref is not None else None
+		ret['TransactionRef'] = str(self._transactionref) if self._transactionref is not None else None
+		return ret
+
+	@property
+	def transactionid(self) -> int:
+		return self._transactionid
+
+	@property
+	def date(self) -> int:
+		return self._date
+
+	@property
+	def type(self) -> str:
+		return self._type
+
+	@property
+	def totalpaid(self) -> typing.Optional[str]:
+		return self._totalpaid
+
+	@property
+	def currency(self) -> typing.Optional[str]:
+		return self._currency
+
+	@property
+	def itempricing(self) -> typing.Iterable[EcsItemPricing]:
+		return self._itempricing
+
+	@property
+	def titleid(self) -> typing.Optional[int]:
+		return self._titleid
+
+	@property
+	def itemcode(self) -> typing.Optional[str]:
+		return self._itemcode
+
+	@property
+	def referenceid(self) -> typing.Optional[bytes]:
+		return self._referenceid
+
+	@property
+	def referencevalue(self) -> typing.Optional[int]:
+		return self._referencevalue
+
+	@property
+	def limits(self) -> typing.Iterable[ContentLimits]:
+		return self._limits
+
+	@property
+	def catalogref(self) -> typing.Optional[str]:
+		return self._catalogref
+
+	@property
+	def itemref(self) -> typing.Optional[int]:
+		return self._itemref
+
+	@property
+	def priceref(self) -> typing.Optional[int]:
+		return self._priceref
+
+	@property
+	def transactionref(self) -> typing.Optional[int]:
+		return self._transactionref
