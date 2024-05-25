@@ -1,11 +1,11 @@
 from struct import pack, unpack
-import hashlib, typing
+import hashlib, typing, datetime
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import ec
 
 from . import certificate, keys
-from . import digitalsignature as digsign
+from ..common import digitalsignature as digsign
 from .exception import ClassInitError
 from .constants import _load_p9_keys, _p9_pubnums
 
@@ -46,10 +46,12 @@ class OTP:
 		self._otp_version = segments[3]
 		self._otp_system_type = segments[4]
 		self._soc_date = segments[5]
-		self._ct_cert_expiration = segments[6]
+		self._ct_cert_expiration_raw = segments[6]
 		self._ct_cert_privk = int.from_bytes(segments[7], 'big') & ((1 << 233) - 1)
 		self._ct_cert_signature = segments[8]
 		self._hash = segments[11]
+
+		self._ct_cert_expiration = int.from_bytes(self._ct_cert_expiration_raw, 'big' if self._otp_version < 5 else 'little')
 
 		self._lfcs_id, self._supplementary_id = unpack("<QQ", self._base_movable_keyY)
 
@@ -94,12 +96,54 @@ class OTP:
 		return self._device_id
 
 	@property
+	def otp_version(self) -> int:
+		return self._otp_version
+
+	@property
 	def otp_system_type(self) -> int:
 		return self._otp_system_type
 
 	@property
-	def otp_version(self) -> int:
-		return self._otp_version
+	def soc_date_raw(self) -> bytes:
+		return self._soc_date
+
+	@property
+	def soc_date(self) -> datetime.datetime:
+		# expected SoC date to be same as CTCert's issue date
+		return datetime.datetime(
+			year=1900+self._soc_date[0],
+			month=self._soc_date[1],
+			day=self._soc_date[2],
+			hour=self._soc_date[3],
+			minute=self._soc_date[4],
+			second=self._soc_date[5],
+			tzinfo=datetime.UTC,
+		)
+
+	@property
+	def ct_cert_expiration_raw(self) -> bytes:
+		return self._ct_cert_expiration_raw
+
+	@property
+	def ct_cert_expiration_timestamp(self) -> int:
+		return self._ct_cert_expiration
+
+	@property
+	def ct_cert_expiration(self) -> datetime.datetime:
+		return datetime.datetime.fromtimestamp(self._ct_cert_expiration, datetime.UTC)
+
+	@property
+	def ct_cert_issuing_date(self) -> datetime.datetime:
+		# Given as a property because hard to get timestamps wrong and time math based off one
+		return self.ct_cert_expiration - datetime.timedelta(days=365*20)
+
+	@property
+	def ct_cert_privk(self) -> int:
+		return self._ct_cert_privk
+
+	@property
+	def ct_cert_signature(self) -> bytes:
+		return self._ct_cert_signature
 
 	@property
 	def lfcs_id(self) -> int:
@@ -119,20 +163,20 @@ class CTCert(certificate.Certificate):
 			raise ClassInitError("CTCert excepts OTP object")
 
 		try:
-			privkey = ec.derive_private_key(otp._ct_cert_privk, ec.SECT233R1(), default_backend())
+			privkey = ec.derive_private_key(otp.ct_cert_privk, ec.SECT233R1(), default_backend())
 			pubkeynumbers = privkey.public_key().public_numbers()
 		except Exception as e:
 			raise ClassInitError("EC Key derivation error") from e
 
 		try:
 			data = pack(
-				">I60s64x64sI64s4s30s30s60x",
+				">I60s64x64sI64sI30s30s60x",
 				digsign.SignatureType.ECC_SHA256,
-				otp._ct_cert_signature,
-				(b"Nintendo CA - G3_NintendoCTR2" + (b"prod" if otp._otp_system_type == 0 else b"dev")),
+				otp.ct_cert_signature,
+				(b"Nintendo CA - G3_NintendoCTR2" + (b"prod" if otp.otp_system_type == 0 else b"dev")),
 				digsign.KeyType.ECC,
-				(f"CT{otp._device_id:08X}-{otp._otp_system_type:02X}").encode(),
-				(otp._ct_cert_expiration if otp._otp_version < 5 else otp._ct_cert_expiration[::-1]),
+				(f"CT{otp.device_id:08X}-{otp.otp_system_type:02X}").encode(),
+				otp.ct_cert_expiration_timestamp,
 				pubkeynumbers.x.to_bytes(30, 'big'),
 				pubkeynumbers.y.to_bytes(30, 'big'),
 			)
@@ -141,10 +185,10 @@ class CTCert(certificate.Certificate):
 
 		super().__init__(data)
 
-		self._is_dev = otp._otp_system_type != 0
-		self._device_id = otp._device_id
-		self._otp_system_type = otp._otp_system_type
-		self._otp_version = otp._otp_version
+		self._is_dev = otp.otp_system_type != 0
+		self._device_id = otp.device_id
+		self._otp_system_type = otp.otp_system_type
+		self._otp_version = otp.otp_version
 
 		try:
 			key = _p9_pubnums['CTR2_DEV'] if self._is_dev else _p9_pubnums['CTR2_PROD']

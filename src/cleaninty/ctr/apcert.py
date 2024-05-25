@@ -5,7 +5,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import ec
 
 from . import certificate
-from . import digitalsignature as digsign
+from ..common import digitalsignature as digsign
 from . import otp
 from .exception import ClassInitError
 

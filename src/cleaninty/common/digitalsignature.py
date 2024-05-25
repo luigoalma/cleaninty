@@ -7,7 +7,7 @@ from cryptography.hazmat.primitives.asymmetric import ec, rsa
 from cryptography.hazmat.primitives import hashes
 from cryptography.exceptions import InvalidSignature as crypto_InvalidSignature
 
-from .exception import CTRExceptionBase, ClassInitError
+from ..exception import CleanintyExceptionBase, ClassInitError
 
 __all__ = [
 	"DigitalSignature",
@@ -35,22 +35,22 @@ _PrivkeysType = typing.Union[
 	rsa.RSAPrivateKeyWithSerialization
 ]
 
-class InvalidSignatureError(CTRExceptionBase):
+class InvalidSignatureError(CleanintyExceptionBase):
 	"""General DigitalSignature invalid signature exception"""
 
-class SignatureProcessingError(CTRExceptionBase):
+class SignatureProcessingError(CleanintyExceptionBase):
 	"""General DigitalSignature signature check exception"""
 
-class SignatureTypeError(CTRExceptionBase):
+class SignatureTypeError(CleanintyExceptionBase):
 	"""General SignatureType exception"""
 
-class VerificationError(CTRExceptionBase):
+class VerificationError(CleanintyExceptionBase):
 	"""General IssuedObject verification exception"""
 
-class IssuingError(CTRExceptionBase):
+class IssuingError(CleanintyExceptionBase):
 	"""General IssuedObject reissuing exception"""
 
-class KeyTypeError(CTRExceptionBase):
+class KeyTypeError(CleanintyExceptionBase):
 	"""General KeyType exception"""
 
 @unique

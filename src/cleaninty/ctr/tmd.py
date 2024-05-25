@@ -4,7 +4,7 @@ import typing, hashlib
 
 from cryptography.hazmat.primitives.asymmetric import ec, rsa
 
-from . import digitalsignature as digsign
+from ..common import digitalsignature as digsign
 from .exception import CTRExceptionBase, ClassInitError, DataProcessingError
 
 __all__ = [
