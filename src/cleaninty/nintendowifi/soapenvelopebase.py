@@ -194,6 +194,13 @@ class SoapEnvelopeBase(XmlParseHelper):
 				session_manager.country
 			)
 
+		if session_manager.virtual_device_type is not None: # seen on the Wii U for vWii
+			self._envelope += '<{0}:{1}>{2}</{0}:{1}>\n'.format(
+				self._sub_name,
+				"VirtualDeviceType",
+				session_manager.virtual_device_type
+			)
+
 		if session_manager.language is not None:
 			self._envelope += '<{0}:Language>{1}</{0}:Language>\n'.format(
 				self._sub_name,
@@ -206,8 +213,24 @@ class SoapEnvelopeBase(XmlParseHelper):
 				session_manager.serial_no
 			)
 
-		# something something ServiceHandle, ServiceTicket and ServiceId for ecs
-		# something something, they never happen in EC 4.6
+		# they never happen in EC 4.6 on 3ds at least
+		if sub_name == SoapSubNames.ECS and session_manager.session_handle is not None and session_manager.session_ticket is not None:
+			# cursed indentation
+			self._envelope += '  <{0}:SessionHandle>{1}</{0}:SessionHandle>\n'.format(
+				self._sub_name,
+				session_manager.session_handle
+			)
+
+			self._envelope += '  <{0}:ServiceTicket>{1}</{0}:ServiceTicket>\n'.format(
+				self._sub_name,
+				session_manager.session_ticket
+			)
+
+			if session_manager.service_id is not None:
+				self._envelope += '  <{0}:ServiceId>{1}</{0}:ServiceId>\n'.format(
+					self._sub_name,
+					session_manager.service_id
+				)
 
 		if sub_name == SoapSubNames.CAS and session_manager.age is not None:
 			# still not sure what "Age" is in this context

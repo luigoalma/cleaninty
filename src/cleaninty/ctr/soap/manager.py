@@ -393,8 +393,24 @@ class CtrSoapManager:
 		return self._device.language if 'language' not in self._overrides.keys() else self._overrides['language']
 
 	@property
+	def virtual_device_type(self) -> typing.Optional[int]:
+		return None
+
+	@property
 	def serial_no(self) -> str:
 		return self._device.serial_no
+
+	@property
+	def session_handle(self) -> typing.Optional[int]:
+		return None
+
+	@property
+	def session_ticket(self) -> typing.Optional[str]:
+		return None
+
+	@property
+	def service_id(self) -> typing.Optional[str]:
+		return None
 
 	@property
 	def user_agent(self) -> str:

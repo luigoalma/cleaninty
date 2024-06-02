@@ -136,9 +136,37 @@ class SoapSessionManager(metaclass=abc.ABCMeta):
 
 	@property
 	@abc.abstractmethod
+	def virtual_device_type(self) -> typing.Optional[int]:
+		"""
+		Virtual Device number, 7 for vWii on the Wii U for example
+		"""
+
+	@property
+	@abc.abstractmethod
 	def serial_no(self) -> str:
 		"""
 		Console's serial number string.
+		"""
+
+	@property
+	@abc.abstractmethod
+	def session_handle(self) -> typing.Optional[int]:
+		"""
+		Session Handle integer.
+		"""
+
+	@property
+	@abc.abstractmethod
+	def session_ticket(self) -> typing.Optional[str]:
+		"""
+		Session Ticket string.
+		"""
+
+	@property
+	@abc.abstractmethod
+	def service_id(self) -> typing.Optional[str]:
+		"""
+		Service Id string.
 		"""
 
 	@property
