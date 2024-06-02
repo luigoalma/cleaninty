@@ -157,9 +157,9 @@ class SoapSessionManager(metaclass=abc.ABCMeta):
 
 	@property
 	@abc.abstractmethod
-	def session_ticket(self) -> typing.Optional[str]:
+	def service_ticket(self) -> typing.Optional[str]:
 		"""
-		Session Ticket string.
+		Service Ticket string.
 		"""
 
 	@property

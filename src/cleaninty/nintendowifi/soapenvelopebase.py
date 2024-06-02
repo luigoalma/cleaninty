@@ -214,7 +214,7 @@ class SoapEnvelopeBase(XmlParseHelper):
 			)
 
 		# they never happen in EC 4.6 on 3ds at least
-		if sub_name == SoapSubNames.ECS and session_manager.session_handle is not None and session_manager.session_ticket is not None:
+		if sub_name == SoapSubNames.ECS and session_manager.session_handle is not None and session_manager.service_ticket is not None:
 			# cursed indentation
 			self._envelope += '  <{0}:SessionHandle>{1}</{0}:SessionHandle>\n'.format(
 				self._sub_name,
@@ -223,7 +223,7 @@ class SoapEnvelopeBase(XmlParseHelper):
 
 			self._envelope += '  <{0}:ServiceTicket>{1}</{0}:ServiceTicket>\n'.format(
 				self._sub_name,
-				session_manager.session_ticket
+				session_manager.service_ticket
 			)
 
 			if session_manager.service_id is not None:

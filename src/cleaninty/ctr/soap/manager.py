@@ -405,7 +405,7 @@ class CtrSoapManager:
 		return None
 
 	@property
-	def session_ticket(self) -> typing.Optional[str]:
+	def service_ticket(self) -> typing.Optional[str]:
 		return None
 
 	@property

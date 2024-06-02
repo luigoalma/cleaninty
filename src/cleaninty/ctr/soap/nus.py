@@ -143,8 +143,24 @@ class CtrStubManager:
 		return self._language
 
 	@property
+	def virtual_device_type(self) -> typing.Optional[int]:
+		return None
+
+	@property
 	def serial_no(self) -> str:
 		return self._serial
+
+	@property
+	def session_handle(self) -> typing.Optional[int]:
+		raise StubCallError("session handle doesn't apply to nus, manager is a nus stub")
+
+	@property
+	def service_ticket(self) -> typing.Optional[str]:
+		raise StubCallError("service ticket doesn't apply to nus, manager is a nus stub")
+
+	@property
+	def service_id(self) -> typing.Optional[str]:
+		raise StubCallError("service id doesn't apply to nus, manager is a nus stub")
 
 	@property
 	def user_agent(self) -> str:
