@@ -394,8 +394,8 @@ def _eshop_region_change(parser, parsed_args):
 	print("Saving updated session...")
 	device.serialize_json(json_file=parsed_args.console)
 
-	if parsed_args.region == soap_device.region and soap_device.account_status != 'U':
-		print("Console already in the desired region.")
+	if parsed_args.region == soap_device.region and parsed_args.country == soap_device.country and soap_device.account_status != 'U':
+		print("Console already in the desired region and country.")
 		return
 
 	device.reboot()
